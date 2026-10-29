@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>手绘｜Hand Drawing</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23A077E9'/%3E%3Cpath d='M14 40c6-14 10-8 14-2s8-8 12-14 8 4 10 10' stroke='%23fff' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="brand">手绘 Hand Drawing <small>· gesture drawing</small></div>
+  <div class="tabs">
+    <button type="button" data-tab="draw">Draw</button>
+    <button type="button" data-tab="gestures">Gestures</button>
+    <button type="button" data-tab="about">About</button>
+  </div>
+</nav>
+
+<main>
+  <div class="app">
+    <!-- 左栏：控制与状态 -->
+    <aside class="left">
+      <button class="btn" id="startBtn">开始绘画 Start Drawing</button>
+      <button class="btn clear" id="clearBtn">清空画布 Clear Canvas</button>
+      <button class="btn undo" id="undoBtn">撤销上一步 Undo</button>
+      <div class="status-card">
+        <div class="row"><span class="dot" id="statusDot"></span><span id="statusText">等待手势 Waiting</span></div>
+      </div>
+      <div class="gesture-list" id="gestureHelp">
+        <b>手势指令 Gestures</b><br>
+        · 抬手食指 · 绘制线条 Draw with index finger<br>
+        · 点击清空按钮 · 清空画布 Clear canvas with button<br>
+        · 摊开手掌 1 秒 · 导出图片 Open palm 1s to export
+      </div>
+    </aside>
+
+    <!-- 中栏：摄像头预览 + 绘画画布 -->
+    <section class="center">
+      <div class="cam-box">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas class="overlay" id="overlay"></canvas>
+        <div class="cam-label">Live Camera + Hand Landmark Tracking</div>
+      </div>
+      <div class="draw-wrap">
+        <canvas id="drawCanvas"></canvas>
+      </div>
+    </section>
+
+    <!-- 右栏：设置 -->
+    <aside class="right">
+      <h3>工具 Tools</h3>
+      <div class="tools">
+        <button type="button" data-tool="brush" class="on">画笔</button>
+        <button type="button" data-tool="eraser">橡皮</button>
+        <button type="button" data-tool="line">直线</button>
+        <button type="button" data-tool="rect">矩形</button>
+        <button type="button" data-tool="ellipse">圆形</button>
+        <button type="button" data-tool="text">文字</button>
+      </div>
+      <div class="setting">
+        <div class="lbl"><span>画笔颜色 Pen Color</span><b id="penName">石墨</b></div>
+        <div class="swatches" id="swatches">
+          <span class="swatch black on" data-color="#1C1C1E" data-name="石墨"></span>
+          <span class="swatch purple" data-color="#A077E9" data-name="紫罗兰"></span>
+          <span class="swatch blue" data-color="#0A84FF" data-name="克莱因蓝"></span>
+          <span class="swatch sky" data-color="#5AC8FA" data-name="天空蓝"></span>
+          <span class="swatch teal" data-color="#00C7BE" data-name="青碧"></span>
+          <span class="swatch green" data-color="#34C759" data-name="翠绿"></span>
+          <span class="swatch yellow" data-color="#FFD60A" data-name="柠檬黄"></span>
+          <span class="swatch orange" data-color="#FF9F0A" data-name="橙色"></span>
+          <span class="swatch red" data-color="#FF453A" data-name="朱红"></span>
+          <span class="swatch pink" data-color="#FF375F" data-name="玫粉"></span>
+          <span class="swatch brown" data-color="#AC8E68" data-name="暖棕"></span>
+          <span class="swatch grey" data-color="#8E8E93" data-name="浅灰"></span>
+        </div>
+      </div>
+      <div class="setting">
+        <div class="lbl"><span>笔触宽度 Stroke Width</span><b id="strokeVal">4 px</b></div>
+        <input type="range" id="strokeRange" min="1" max="20" value="4">
+      </div>
+      <div class="setting">
+        <div class="lbl"><span>灵敏度 Sensitivity</span><b id="sensVal">中</b></div>
+        <input type="range" id="sensRange" min="1" max="5" value="3">
+      </div>
+      <div class="setting">
+        <div class="lbl"><span>画布尺寸 Canvas Size</span></div>
+        <div class="seg" id="sizeSeg">
+          <button type="button" data-size="600,400">小</button>
+          <button type="button" data-size="900,600" class="on">中</button>
+          <button type="button" data-size="1200,800">大</button>
+        </div>
+      </div>
+      <div class="setting">
+        <div class="lbl"><span>透明度 Opacity</span><b id="opacityVal">100%</b></div>
+        <input type="range" id="opacityRange" min="10" max="100" value="100">
+      </div>
+      <div class="setting">
+        <div class="lbl"><span>形状样式 Shape Style</span></div>
+        <div class="seg" id="fillSeg">
+          <button type="button" data-fill="0" class="on">描边</button>
+          <button type="button" data-fill="1">填充</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- 功能卡片 -->
+  <div class="cards">
+    <div class="card">
+      <div class="en">Gesture commands & clear button</div>
+      <h4>手势指令与一键清空</h4>
+      <p>食指抬起 = 画笔；点击“清空画布”按钮 = 一键清空；摊开手掌并停留 1 秒 = 导出当前画作为图片。</p>
+    </div>
+    <div class="card">
+      <div class="en">Fingertip-to-canvas mapping</div>
+      <h4>指尖实时映射画布</h4>
+      <p>MediaPipe 每帧读取 21 个手部关键点，食指指尖的空间坐标被连续映射为画布上的笔迹。</p>
+    </div>
+    <div class="card">
+      <div class="en">6 tools & 12 colors</div>
+      <h4>画笔工具与 12 色色卡</h4>
+      <p>画笔、橡皮、直线、矩形、圆形与文字六种工具；12 色色卡；笔触、透明度、形状填充、灵敏度与画布尺寸均可实时调节，支持撤销。</p>
+    </div>
+  </div>
+</main>
+
+<!-- ===== Prototype 设计稿预览 ===== -->
+<section class="proto">
+  <div class="proto-head"><b>Prototype 设计稿</b><span>Hand Drawing · 高保真原型 Prototype mockup（真实交互以页面为准）</span></div>
+  <img src="assets/prototype-final.jpg" alt="手绘 Hand Drawing Prototype 高保真设计稿">
+</section>
+
+<footer>
+  <div><b>交互逻辑 Interaction Logic</b>：摄像头捕捉手部姿态，实时读取指尖坐标，将空中肢体运动转化为画布上的绘画轨迹；界面仅作为载体，创作由手势完成。</div>
+  <div><b>设计原则 Design Principle</b>：少即是多，精简界面元素；大量留白；简化视觉层级，避免干扰手势创作。</div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script type="module" src="script.js"></script>
+</body>
+</html>
